@@ -40,6 +40,7 @@ logs/
 output/temp/
 output/audio/*.mp3
 output/audio/*.wav
+output/*
 # output/videos/*.mp4  <-- We might want to keep the sample video for the demo
 
 # IDE

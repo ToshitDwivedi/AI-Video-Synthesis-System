@@ -2,10 +2,17 @@
 Main entry point - CLI interface for video synthesis system
 """
 
-import argparse
 import sys
+import logging
+import argparse
 from pathlib import Path
 
+# Fix Windows console encoding issues
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
+from src.utils.config import load_config
 from src.pipeline import VideoSynthesisPipeline
 
 
@@ -119,7 +126,6 @@ Examples:
         
         print(f"\n[SUCCESS] SUCCESS!")
         print(f"[VIDEO] Video generated: {video_path}")
-        print(f"[DURATION] Duration: ~{pipeline.script_generator._sanitize_filename(args.topic)} seconds")
         print()
         
         # Provide next steps

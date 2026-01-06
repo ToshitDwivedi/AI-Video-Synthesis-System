@@ -71,19 +71,19 @@ class VideoSynthesisPipeline:
         
         try:
             # Component 1: Topic → Script
-            logger.info("COMPONENT 1: Topic → Script")
+            logger.info("COMPONENT 1: Topic -> Script")
             script = self.script_generator.generate_script(topic)
-            logger.info(f"✓ Script generated ({script['scene_count']} scenes, {script['total_duration']}s)")
+            logger.info(f"[OK] Script generated ({script['scene_count']} scenes, {script['total_duration']}s)")
             
             # Component 2: Script → Blueprint
-            logger.info("\nCOMPONENT 2: Script → Blueprint")
+            logger.info("\nCOMPONENT 2: Script -> Blueprint")
             blueprint = self.blueprint_generator.generate_blueprint(script)
-            logger.info(f"✓ Blueprint generated")
+            logger.info(f"[OK] Blueprint generated")
             
             # Component 3: Blueprint → MP4
-            logger.info("\nCOMPONENT 3: Blueprint → MP4 Video")
+            logger.info("\nCOMPONENT 3: Blueprint -> MP4 Video")
             video_path = self.video_generator.generate_video(script, blueprint, topic)
-            logger.info(f"✓ Video generated: {video_path}")
+            logger.info(f"[OK] Video generated: {video_path}")
             
             # Optionally move to custom output path
             if output_path:
@@ -93,7 +93,7 @@ class VideoSynthesisPipeline:
                 video_path = final_path
             
             logger.info(f"\n{'='*60}")
-            logger.info(f"✅ PIPELINE COMPLETE")
+            logger.info(f"[SUCCESS] PIPELINE COMPLETE")
             logger.info(f"Video: {video_path}")
             logger.info(f"{'='*60}\n")
             

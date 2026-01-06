@@ -49,10 +49,10 @@ class BlueprintGenerator:
             'scenes': []
         }
         
-        # Process each scene
+        # Process each scene with UNIQUE scene IDs
         for i, scene_data in enumerate(script['scenes'], 1):
-            scene_id = scene_data.get('scene_id', i)
-            logger.info(f"Processing scene {scene_id}")
+            scene_data['scene_id'] = i  # Force unique scene ID
+            logger.info(f"Processing scene {i}")
             blueprint_scene = self._create_scene_blueprint(scene_data)
             blueprint['scenes'].append(blueprint_scene)
         
@@ -93,46 +93,48 @@ class BlueprintGenerator:
     def _extract_visual_elements(self, visual_desc: str, narration: str) -> List[Dict]:
         """
         Extract visual elements from descriptions.
-        This is a simplified version - could use LLM for more sophistication.
+        LIMITED to 2 boxes + 1 arrow to prevent cluttered frames.
         """
         elements = []
         element_counter = 0
         
-        # Common technical video elements
-        keywords = {
-            'client': 'box',
-            'server': 'box',
-            'database': 'box',
-            'arrow': 'arrow',
-            'connection': 'arrow',
-            'request': 'arrow',
-            'response': 'arrow',
-            'user': 'box',
-            'api': 'box',
-            'data': 'text'
-        }
+        # Priority keywords for DNS topic - ordered by importance
+        box_keywords = ['user', 'client', 'browser', 'computer', 'server', 'dns', 'website', 'database']
+        arrow_keywords = ['request', 'response', 'connection', 'sends', 'returns', 'connects']
         
         text_lower = (visual_desc + ' ' + narration).lower()
         
-        # Detect elements based on keywords
-        detected = set()
-        for keyword, elem_type in keywords.items():
-            if keyword in text_lower and keyword not in detected:
-                detected.add(keyword)
-                
-                element = {
+        # Collect max 2 boxes
+        boxes_added = 0
+        for keyword in box_keywords:
+            if keyword in text_lower and boxes_added < 2:
+                elements.append({
                     'element_id': f'elem_{element_counter}',
-                    'type': elem_type,
+                    'type': 'box',
                     'label': keyword.capitalize(),
-                    'position': self._get_element_position(element_counter),
-                    'color': self._get_element_color(elem_type),
-                }
-                
-                if elem_type == 'box':
-                    element['size'] = {'width': 2, 'height': 1.5}
-                
-                elements.append(element)
+                    'position': {'x': -3 if boxes_added == 0 else 3, 'y': 0},
+                    'color': self._get_element_color('box'),
+                    'size': {'width': 2, 'height': 1.5}
+                })
                 element_counter += 1
+                boxes_added += 1
+        
+        # Add exactly 1 arrow if we have 2 boxes
+        if boxes_added >= 2:
+            arrow_label = 'Flow'
+            for keyword in arrow_keywords:
+                if keyword in text_lower:
+                    arrow_label = keyword.capitalize()
+                    break
+            
+            elements.append({
+                'element_id': f'elem_{element_counter}',
+                'type': 'arrow',
+                'label': arrow_label,
+                'position': {'x': 0, 'y': 0},
+                'color': self._get_element_color('arrow'),
+            })
+            element_counter += 1
         
         # Always include title text
         elements.insert(0, {
@@ -216,7 +218,7 @@ class BlueprintGenerator:
         return animations
     
     def _get_visualization_style(self, narration: str) -> str:
-        \"\"\"Determine visualization style based on scene content.\"\"\"
+        """Determine visualization style based on scene content."""
         narration_lower = narration.lower()
         
         # Keyword-based style selection
@@ -234,7 +236,7 @@ class BlueprintGenerator:
             return '2d_explainer'  # Default
     
     def _get_transition(self) -> Dict:
-        """Get transition to next scene with variety.\"\"\"
+        """Get transition to next scene with variety."""
         transition_type = self.style_profile.get('animation', {}).get('transition_speed', 'smooth')
         
         # Vary transitions for more dynamic videos

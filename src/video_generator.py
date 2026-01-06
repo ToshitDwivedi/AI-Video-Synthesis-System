@@ -52,12 +52,16 @@ class VideoGenerator:
         # Step 3: Combine into final video
         logger.info("Step 3: Creating final MP4")
         
-        # Get audio paths in order
+        # Get audio paths in order - handle missing entries properly
         audio_paths = []
-        for scene in script['scenes']:
-            scene_id = scene.get('scene_id', len(audio_paths) + 1)
-            audio_path = Path(audio_files.get(scene_id, ''))
-            audio_paths.append(audio_path if audio_path.exists() else None)
+        for i, scene in enumerate(script['scenes'], 1):
+            scene_id = scene.get('scene_id', i)
+            audio_file = audio_files.get(scene_id, '')
+            if audio_file and audio_file != '':
+                audio_path = Path(audio_file)
+                audio_paths.append(audio_path if audio_path.exists() and audio_path.is_file() else None)
+            else:
+                audio_paths.append(None)
         
         # Output path
         safe_topic = topic.lower().replace(' ', '_').replace('/', '_')

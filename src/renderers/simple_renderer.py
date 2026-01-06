@@ -9,6 +9,17 @@ from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 import json
 
+try:
+    from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+except ImportError:
+    try:
+        from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+    except ImportError:
+        # Fallback for MoviePy 2.0 structure if changed
+        import moviepy.audio.io.AudioFileClip as AudioFileClip
+        import moviepy.video.io.ImageSequenceClip as ImageClip
+        from moviepy.video.compositing.concatenate import concatenate_videoclips
+
 logger = logging.getLogger('video_synthesis.simple_renderer')
 
 
@@ -93,12 +104,34 @@ class SimpleVideoRenderer:
                 font_medium = ImageFont.load_default()
                 font_small = ImageFont.load_default()
             
-            # Create meaningful title from narration (first 8 words)
+            # Create MEANINGFUL title from narration
             if narration:
-                title_words = narration.split()[:8]
-                scene_title = ' '.join(title_words)
-                if len(narration.split()) > 8:
-                    scene_title += "..."
+                # Extract key concept by finding important phrases
+                narration_lower = narration.lower()
+                
+                # Look for key patterns
+                if 'dns' in narration_lower:
+                    scene_title = "How DNS Works"
+                elif 'ip address' in narration_lower:
+                    scene_title = "IP Address Lookup"
+                elif 'server' in narration_lower and 'request' in narration_lower:
+                    scene_title = "Server Request"
+                elif 'phonebook' in narration_lower:
+                    scene_title = "DNS as Phonebook"
+                elif 'connect' in narration_lower:
+                    scene_title = "Establishing Connection"
+                elif 'browser' in narration_lower or 'url' in narration_lower:
+                    scene_title = "User Browsing"
+                elif 'returns' in narration_lower or 'response' in narration_lower:
+                    scene_title = "Server Response"
+                else:
+                    # Fallback: use first meaningful phrase (skip common words)
+                    words = narration.split()
+                    skip_words = {'imagine', 'the', 'a', 'an', 'you', "you're", 'your', 'what', 'when', 'how'}
+                    key_words = [w for w in words[:10] if w.lower() not in skip_words][:5]
+                    scene_title = ' '.join(key_words).rstrip('.,!?')
+                    if len(scene_title) > 40:
+                        scene_title = scene_title[:37] + "..."
             else:
                 scene_title = f"Scene {scene_id}"
             
@@ -157,6 +190,16 @@ class SimpleVideoRenderer:
             if has_visual_elements:
                 logger.info(f"Scene {scene_id}: Rendering {len(elements)} elements")
                 
+                # FIRST PASS: Collect box positions for smart arrow placement
+                box_positions = []
+                for elem in elements:
+                    if elem.get('type') == 'box':
+                        pos = elem.get('position', {})
+                        x = int(pos.get('x', 0) * 120 + 640)
+                        y = int(pos.get('y', 0) * 100 + 450)
+                        box_positions.append((x, y, elem.get('label', '')))
+                
+                # SECOND PASS: Render all elements
                 for idx, elem in enumerate(elements):
                     elem_type = elem.get('type', 'text')
                     label = elem.get('label', '')
@@ -189,36 +232,55 @@ class SimpleVideoRenderer:
                         logger.info(f"  Rendered box '{label}' at ({x}, {y})")
                     
                     elif elem_type == 'arrow':
-                        # Arrow rendering - HORIZONTAL RED ARROW
-                        x = int(pos.get('x', 0) * 120 + 640)
-                        y = int(pos.get('y', 0) * 100 + 450)
-                        
-                        # Draw horizontal arrow (200px long)
-                        arrow_length = 200
-                        start_x = x - arrow_length // 2
-                        end_x = x + arrow_length // 2
-                        
-                        # Arrow line (THICK RED)
-                        draw.line([start_x, y, end_x, y], 
-                                fill='#FF3333', width=8)
-                        
-                        # Arrowhead (triangle at end)
-                        arrow_size = 30
-                        arrow_pts = [
-                            (end_x, y),
-                            (end_x - arrow_size, y - 15),
-                            (end_x - arrow_size, y + 15)
-                        ]
-                        draw.polygon(arrow_pts, fill='#FF3333')
-                        
-                        # Label above arrow
-                        if label:
-                            bbox = draw.textbbox((0, 0), label, font=font_small)
-                            lbl_width = bbox[2] - bbox[0]
-                            draw.text((x - lbl_width//2, y - 45), 
-                                    label, fill='#FFaa33', font=font_small)
-                        
-                        logger.info(f"  Rendered ARROW '{label}' at ({x}, {y})")
+                        # SMART ARROW: Connect boxes if they exist
+                        if len(box_positions) >= 2:
+                            # Draw arrow FROM first box TO second box
+                            start_x = box_positions[0][0] + 110  # Right edge of first box
+                            start_y = box_positions[0][1]
+                            end_x = box_positions[1][0] - 110    # Left edge of second box
+                            end_y = box_positions[1][1]
+                            
+                            # Arrow line (THICK RED)
+                            draw.line([start_x, start_y, end_x, end_y], 
+                                    fill='#FF3333', width=8)
+                            
+                            # Arrowhead pointing right
+                            arrow_size = 25
+                            arrow_pts = [
+                                (end_x, end_y),
+                                (end_x - arrow_size, end_y - 12),
+                                (end_x - arrow_size, end_y + 12)
+                            ]
+                            draw.polygon(arrow_pts, fill='#FF3333')
+                            
+                            # Label above arrow center
+                            mid_x = (start_x + end_x) // 2
+                            mid_y = (start_y + end_y) // 2 - 30
+                            if label:
+                                bbox = draw.textbbox((0, 0), label, font=font_small)
+                                lbl_width = bbox[2] - bbox[0]
+                                draw.text((mid_x - lbl_width//2, mid_y), 
+                                        label, fill='#FFaa33', font=font_small)
+                            
+                            logger.info(f"  Rendered ARROW '{label}' connecting boxes")
+                        else:
+                            # Fallback: draw centered arrow
+                            x = int(pos.get('x', 0) * 120 + 640)
+                            y = int(pos.get('y', 0) * 100 + 450)
+                            arrow_length = 200
+                            start_x = x - arrow_length // 2
+                            end_x = x + arrow_length // 2
+                            
+                            draw.line([start_x, y, end_x, y], fill='#FF3333', width=8)
+                            arrow_pts = [(end_x, y), (end_x - 25, y - 12), (end_x - 25, y + 12)]
+                            draw.polygon(arrow_pts, fill='#FF3333')
+                            
+                            if label:
+                                bbox = draw.textbbox((0, 0), label, font=font_small)
+                                lbl_width = bbox[2] - bbox[0]
+                                draw.text((x - lbl_width//2, y - 45), label, fill='#FFaa33', font=font_small)
+                            
+                            logger.info(f"  Rendered ARROW '{label}' at center")
             
             # NO VISUAL DESCRIPTION AT BOTTOM (removed completely)
             
@@ -415,8 +477,8 @@ class SimpleVideoRenderer:
     def create_video_from_frames(self, frame_paths: List[Path], audio_paths: List[Path], output_path: Path) -> Path:
         """Combine frames and audio into final video with transitions."""
         try:
-            from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip, CompositeAudioClip
-            from moviepy.video.fx import fadeout, fadein
+            # MoviePy 2.x imports
+            from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
             
             clips = []
             
@@ -435,17 +497,13 @@ class SimpleVideoRenderer:
                 # Create video clip from image
                 clip = ImageClip(str(frame_path), duration=duration)
                 
-                # Add fade transitions
-                if i > 0:  # Fade in for all clips except first
-                    clip = fadein(clip, 0.5)
-                if i < len(frame_paths) - 1:  # Fade out for all clips except last
-                    clip = fadeout(clip, 0.5)
+                # Note: Fade effects removed for MoviePy 2.x compatibility
                 
                 # Add audio if available
                 if i < len(audio_paths) and audio_paths[i] and audio_paths[i].exists():
                     try:
                         audio_clip = AudioFileClip(str(audio_paths[i]))
-                        clip = clip.set_audio(audio_clip)
+                        clip = clip.with_audio(audio_clip)
                     except Exception as e:
                         logger.warning(f"Could not add audio to scene {i+1}: {e}")
                 
