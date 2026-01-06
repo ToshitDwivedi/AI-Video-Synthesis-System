@@ -13,7 +13,7 @@ logger = logging.getLogger('video_synthesis.simple_renderer')
 
 
 class SimpleVideoRenderer:
-    """Generate videos using PIL + moviepy."""
+    """Generate videos using PIL + moviepy with enhanced animations."""
     
     def __init__(self, config: dict):
         self.config = config
@@ -21,6 +21,17 @@ class SimpleVideoRenderer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.width = 1280
         self.height = 720
+        self.fps = 30  # Frames per second for animations
+        
+        # Visualization styles supported
+        self.viz_styles = [
+            '2d_explainer',
+            'line_based_animation',
+            'flowchart_arrows',
+            'whiteboard_doodle',
+            'kinetic_typography',
+            'infographic_motion'
+        ]
         
     def render_blueprint(self, blueprint: Dict, audio_files: Dict) -> List[Path]:
         """
@@ -53,10 +64,12 @@ class SimpleVideoRenderer:
         return video_files
     
     def _render_scene(self, scene_data: Dict, duration: float, style: Dict) -> Path:
-        """Render a single scene with clean, centered design."""
+        """Render a single scene with animations and transitions."""
         try:
             scene_id = scene_data.get('scene_id', 1)
             narration = scene_data.get('narration', '')
+            viz_style = scene_data.get('visualization_style', '2d_explainer')
+            transition = scene_data.get('transition', {'type': 'fade', 'duration': 0.5})
             
             # Create base image with gradient background
             img = Image.new('RGB', (self.width, self.height), color='#0f0f1e')
@@ -220,10 +233,190 @@ class SimpleVideoRenderer:
             logger.error(f"Failed to render scene {scene_data.get('scene_id')}: {e}", exc_info=True)
             return None
     
+    def _render_animated_scene(self, scene_data: Dict, duration: float, style: Dict) -> List[Path]:
+        """Render multiple frames for animated scene with transitions."""
+        scene_id = scene_data.get('scene_id', 1)
+        frames = []
+        num_frames = int(duration * self.fps)
+        transition_type = scene_data.get('transition', {}).get('type', 'fade')
+        
+        for frame_idx in range(num_frames):
+            progress = frame_idx / num_frames
+            frame_path = self._render_frame(scene_data, frame_idx, progress, style, transition_type)
+            if frame_path:
+                frames.append(frame_path)
+        
+        return frames
+    
+    def _render_frame(self, scene_data: Dict, frame_idx: int, progress: float, style: Dict, transition: str) -> Path:
+        """Render individual frame with animation effects."""
+        try:
+            scene_id = scene_data.get('scene_id', 1)
+            narration = scene_data.get('narration', '')
+            
+            # Create base image
+            img = Image.new('RGB', (self.width, self.height), color='#0f0f1e')
+            draw = ImageDraw.Draw(img)
+            
+            # Apply transition effect
+            if transition == 'fade' and progress < 0.2:
+                # Fade in at start
+                alpha = int(255 * (progress / 0.2))
+                overlay = Image.new('RGBA', (self.width, self.height), (15, 15, 30, 255 - alpha))
+                img.paste(overlay, (0, 0), overlay)
+            elif transition == 'slide' and progress < 0.3:
+                # Slide in from left
+                offset = int(self.width * (1 - progress / 0.3))
+                img = img.transform(img.size, Image.AFFINE, (1, 0, -offset, 0, 1, 0))
+            
+            # Load fonts
+            try:
+                font_title = ImageFont.truetype("arial.ttf", 48)
+                font_medium = ImageFont.truetype("arial.ttf", 34)
+            except:
+                font_title = ImageFont.load_default()
+                font_medium = ImageFont.load_default()
+            
+            # Add gradient background
+            for y in range(self.height):
+                alpha = int(30 * (y / self.height))
+                color = (15 + alpha, 15 + alpha, 30 + alpha)
+                draw.rectangle([(0, y), (self.width, y+1)], fill=color)
+            
+            # Draw title with kinetic typography effect
+            if progress < 0.5:
+                title_scale = progress / 0.5
+            else:
+                title_scale = 1.0
+            
+            scene_title = narration.split()[:6] if narration else f"Scene {scene_id}"
+            scene_title = ' '.join(scene_title) if isinstance(scene_title, list) else scene_title
+            
+            draw.rectangle([0, 0, self.width, 100], fill='#1a2332', outline='#00d4ff', width=3)
+            bbox = draw.textbbox((0, 0), scene_title[:50], font=font_title)
+            text_width = bbox[2] - bbox[0]
+            draw.text(((self.width - text_width) // 2, 25), 
+                     scene_title[:50], fill='#00d4ff', font=font_title)
+            
+            # Render elements with animation
+            elements = scene_data.get('elements', [])
+            for elem in elements:
+                elem_progress = min(1.0, progress * 1.5)  # Stagger element animations
+                self._render_animated_element(draw, elem, elem_progress, font_medium)
+            
+            # Add text overlay for narration
+            if narration:
+                self._draw_text_overlay(draw, narration, font_medium, progress)
+            
+            # Save frame
+            frame_path = self.output_dir / f"scene_{scene_id}_frame_{frame_idx:04d}.png"
+            img.save(frame_path)
+            
+            return frame_path
+            
+        except Exception as e:
+            logger.error(f"Failed to render frame {frame_idx}: {e}")
+            return None
+    
+    def _render_animated_element(self, draw, elem: Dict, progress: float, font):
+        """Render animated visual element."""
+        elem_type = elem.get('type', 'box')
+        label = elem.get('label', '')
+        pos = elem.get('position', {})
+        
+        x = int(pos.get('x', 0) * 120 + 640)
+        y = int(pos.get('y', 0) * 100 + 450)
+        
+        # Apply grow animation
+        scale = progress
+        
+        if elem_type == 'box':
+            width = elem.get('size', {}).get('width', 2) * 110 * scale
+            height = elem.get('size', {}).get('height', 1.5) * 70 * scale
+            
+            # Draw box with shadow
+            draw.rectangle([x - width//2 + 4, y - height//2 + 4, 
+                          x + width//2 + 4, y + height//2 + 4],
+                         fill='#000000')
+            draw.rectangle([x - width//2, y - height//2, x + width//2, y + height//2],
+                         fill='#1e3a5f', outline='#00d4ff', width=5)
+            
+            if label and progress > 0.5:
+                bbox = draw.textbbox((0, 0), label, font=font)
+                lbl_width = bbox[2] - bbox[0]
+                draw.text((x - lbl_width//2, y - 15), label, fill='#00ffff', font=font)
+        
+        elif elem_type == 'arrow':
+            arrow_length = 200 * progress
+            start_x = x - arrow_length // 2
+            end_x = x + arrow_length // 2
+            
+            draw.line([start_x, y, end_x, y], fill='#FF3333', width=8)
+            
+            # Arrowhead
+            if progress > 0.7:
+                arrow_pts = [(end_x, y), (end_x - 30, y - 15), (end_x - 30, y + 15)]
+                draw.polygon(arrow_pts, fill='#FF3333')
+            
+            if label and progress > 0.8:
+                bbox = draw.textbbox((0, 0), label, font=font)
+                lbl_width = bbox[2] - bbox[0]
+                draw.text((x - lbl_width//2, y - 45), label, fill='#FFaa33', font=font)
+        
+        elif elem_type == 'circle':
+            radius = 50 * scale
+            draw.ellipse([x - radius, y - radius, x + radius, y + radius],
+                        fill='#1e3a5f', outline='#00ffaa', width=4)
+            
+            if label and progress > 0.6:
+                bbox = draw.textbbox((0, 0), label, font=font)
+                lbl_width = bbox[2] - bbox[0]
+                draw.text((x - lbl_width//2, y - 10), label, fill='#00ffaa', font=font)
+    
+    def _draw_text_overlay(self, draw, narration: str, font, progress: float):
+        """Draw animated text overlay for narration."""
+        # Split narration into lines
+        words = narration.split()
+        visible_words = int(len(words) * progress)
+        text_to_show = ' '.join(words[:visible_words])
+        
+        # Wrap text
+        lines = []
+        current_line = []
+        max_width = self.width - 160
+        
+        for word in text_to_show.split():
+            test_line = ' '.join(current_line + [word])
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            if bbox[2] - bbox[0] <= max_width:
+                current_line.append(word)
+            else:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Draw lines
+        text_y = 150
+        for i, line in enumerate(lines[:4]):
+            bbox = draw.textbbox((0, 0), line, font=font)
+            line_width = bbox[2] - bbox[0]
+            x_pos = (self.width - line_width) // 2
+            
+            # Add semi-transparent background for readability
+            padding = 10
+            draw.rectangle([x_pos - padding, text_y + i * 50 - padding,
+                          x_pos + line_width + padding, text_y + i * 50 + 35 + padding],
+                         fill=(0, 0, 0, 128))
+            
+            draw.text((x_pos, text_y + i * 50), line, fill='#ffffff', font=font)
+    
     def create_video_from_frames(self, frame_paths: List[Path], audio_paths: List[Path], output_path: Path) -> Path:
-        """Combine frames and audio into final video."""
+        """Combine frames and audio into final video with transitions."""
         try:
             from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip, CompositeAudioClip
+            from moviepy.video.fx import fadeout, fadein
             
             clips = []
             
@@ -241,6 +434,12 @@ class SimpleVideoRenderer:
                 
                 # Create video clip from image
                 clip = ImageClip(str(frame_path), duration=duration)
+                
+                # Add fade transitions
+                if i > 0:  # Fade in for all clips except first
+                    clip = fadein(clip, 0.5)
+                if i < len(frame_paths) - 1:  # Fade out for all clips except last
+                    clip = fadeout(clip, 0.5)
                 
                 # Add audio if available
                 if i < len(audio_paths) and audio_paths[i] and audio_paths[i].exists():

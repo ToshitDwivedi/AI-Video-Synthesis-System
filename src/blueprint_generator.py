@@ -74,8 +74,9 @@ class BlueprintGenerator:
         duration = scene_data.get('duration', 10)
         animations = self._generate_animations(elements, duration)
         
-        # Determine transition
+        # Determine transition and visualization style
         transition = self._get_transition()
+        viz_style = self._get_visualization_style(scene_data.get('narration', ''))
         
         return {
             'scene_id': scene_data.get('scene_id', 1),
@@ -83,9 +84,10 @@ class BlueprintGenerator:
             'duration': duration,
             'narration': scene_data.get('narration', ''),
             'visual_description': scene_data.get('visual_description', ''),
+            'visualization_style': viz_style,
+            'transition': transition,
             'elements': elements,
-            'animations': animations,
-            'transitions': transition
+            'animations': animations
         }
     
     def _extract_visual_elements(self, visual_desc: str, narration: str) -> List[Dict]:
@@ -198,20 +200,57 @@ class BlueprintGenerator:
                     },
                     'parameters': {'direction': 'horizontal'}
                 })
+            
+            # Boxes get slide-in animation
+            elif element['type'] == 'box':
+                animations.append({
+                    'element_id': element['element_id'],
+                    'animation_type': 'slide_in',
+                    'timing': {
+                        'start': i * delay_per_element + 0.1,
+                        'duration': 0.4
+                    },
+                    'parameters': {'direction': 'bottom'}
+                })
         
         return animations
     
+    def _get_visualization_style(self, narration: str) -> str:
+        \"\"\"Determine visualization style based on scene content.\"\"\"
+        narration_lower = narration.lower()
+        
+        # Keyword-based style selection
+        if any(word in narration_lower for word in ['flow', 'process', 'step', 'sequence']):
+            return 'flowchart_arrows'
+        elif any(word in narration_lower for word in ['data', 'graph', 'stat', 'number']):
+            return 'infographic_motion'
+        elif any(word in narration_lower for word in ['animate', 'move', 'transition']):
+            return 'line_based_animation'
+        elif any(word in narration_lower for word in ['explain', 'understand', 'concept']):
+            return '2d_explainer'
+        elif any(word in narration_lower for word in ['type', 'text', 'word']):
+            return 'kinetic_typography'
+        else:
+            return '2d_explainer'  # Default
+    
     def _get_transition(self) -> Dict:
-        """Get transition to next scene."""
+        """Get transition to next scene with variety.\"\"\"
         transition_type = self.style_profile.get('animation', {}).get('transition_speed', 'smooth')
         
-        transition_map = {
-            'smooth': {'type': 'fade', 'duration': 0.5},
-            'snappy': {'type': 'cut', 'duration': 0.1},
-            'professional': {'type': 'fade', 'duration': 0.3}
-        }
+        # Vary transitions for more dynamic videos
+        transitions = [
+            {'type': 'fade', 'duration': 0.5},
+            {'type': 'slide', 'duration': 0.6},
+            {'type': 'crossfade', 'duration': 0.4},
+            {'type': 'dissolve', 'duration': 0.5}
+        ]
         
-        return transition_map.get(transition_type, {'type': 'fade', 'duration': 0.5})
+        # Rotate through transitions
+        import random
+        if transition_type == 'snappy':
+            return {'type': 'cut', 'duration': 0.1}
+        else:
+            return random.choice(transitions)
     
     def _get_default_style(self) -> Dict:
         """Get default style profile if none provided."""

@@ -44,6 +44,26 @@
             "type": "string",
             "description": "High-level description of visuals"
           },
+          "visualization_style": {
+            "type": "string",
+            "enum": ["2d_explainer", "line_based_animation", "flowchart_arrows", "character_based", "whiteboard_doodle", "ui_walkthrough", "kinetic_typography", "infographic_motion", "storytelling"],
+            "description": "Visualization style for this scene"
+          },
+          "transition": {
+            "type": "object",
+            "description": "Transition effect to next scene",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["fade", "slide", "zoom", "wipe", "dissolve", "crossfade"],
+                "default": "fade"
+              },
+              "duration": {
+                "type": "number",
+                "default": 0.5
+              }
+            }
+          },
           "elements": {
             "type": "array",
             "description": "Visual elements in the scene",
@@ -57,7 +77,7 @@
                 },
                 "type": {
                   "type": "string",
-                  "enum": ["box", "circle", "arrow", "text", "line", "icon", "shape"],
+                  "enum": ["box", "circle", "arrow", "text", "line", "icon", "shape", "diagram", "flowchart", "character"],
                   "description": "Type of visual element"
                 },
                 "label": {
@@ -98,7 +118,7 @@
                 },
                 "animation_type": {
                   "type": "string",
-                  "enum": ["fade_in", "fade_out", "slide_in", "slide_out", "grow", "shrink", "move", "rotate", "morph"],
+                  "enum": ["fade_in", "fade_out", "slide_in", "slide_out", "grow", "shrink", "move", "rotate", "morph", "bounce", "pulse", "draw"],
                   "description": "Type of animation"
                 },
                 "timing": {

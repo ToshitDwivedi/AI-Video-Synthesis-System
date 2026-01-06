@@ -111,10 +111,13 @@ python main.py --topic "What is HTTP"
 - Maintains coherent narrative flow
 
 ✅ **Visual Engine:**
-- **2D Explainer Style**: Clean, flat design using Pillow/MoviePy
+- **Multiple Visualization Styles**: 2D explainer, flowchart animations, line-based, kinetic typography, infographic motion
 - **Smart Diagrams**: Automatically layouts Server/Client/Database interactions
-- **Arrow Logic**: Connects elements meaningfully (e.g., User -> Website)
-- **Typography**: Centered narration & meaningful scene titles
+- **Arrow Logic**: Connects elements meaningfully with animated arrows
+- **Typography**: Centered narration with animated text overlays
+- **Basic Transitions**: Fade, slide, crossfade, dissolve between scenes
+- **Element Animations**: Grow, slide-in, fade-in, pulse effects
+- **Text Overlays**: Professional styled narration boxes with semi-transparent backgrounds
 
 ✅ **Audio Generation:**
 - Text-to-speech for each scene
