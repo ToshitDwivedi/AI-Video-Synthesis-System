@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Animation Blueprint Schema",
+  "description": "Schema for animation blueprints that drive video generation",
+  "type": "object",
+  "required": ["topic", "total_duration", "scenes"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "The topic of the video"
+    },
+    "total_duration": {
+      "type": "number",
+      "description": "Total video duration in seconds"
+    },
+    "style_profile": {
+      "type": "object",
+      "description": "Visual style configuration from Part A analysis"
+    },
+    "scenes": {
+      "type": "array",
+      "description": "List of animated scenes",
+      "items": {
+        "type": "object",
+        "required": ["scene_id", "start_time", "duration", "narration"],
+        "properties": {
+          "scene_id": {
+            "type": "integer",
+            "description": "Unique scene identifier"
+          },
+          "start_time": {
+            "type": "number",
+            "description": "Scene start time in seconds"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Scene duration in seconds"
+          },
+          "narration": {
+            "type": "string",
+            "description": "Voice-over text for this scene"
+          },
+          "visual_description": {
+            "type": "string",
+            "description": "High-level description of visuals"
+          },
+          "elements": {
+            "type": "array",
+            "description": "Visual elements in the scene",
+            "items": {
+              "type": "object",
+              "required": ["element_id", "type"],
+              "properties": {
+                "element_id": {
+                  "type": "string",
+                  "description": "Unique element identifier"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["box", "circle", "arrow", "text", "line", "icon", "shape"],
+                  "description": "Type of visual element"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Text label for the element"
+                },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": {"type": "number"},
+                    "y": {"type": "number"}
+                  }
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Element color (hex code)"
+                },
+                "size": {
+                  "type": "object",
+                  "properties": {
+                    "width": {"type": "number"},
+                    "height": {"type": "number"}
+                  }
+                }
+              }
+            }
+          },
+          "animations": {
+            "type": "array",
+            "description": "Animations to apply to elements",
+            "items": {
+              "type": "object",
+              "required": ["element_id", "animation_type", "timing"],
+              "properties": {
+                "element_id": {
+                  "type": "string",
+                  "description": "ID of element to animate"
+                },
+                "animation_type": {
+                  "type": "string",
+                  "enum": ["fade_in", "fade_out", "slide_in", "slide_out", "grow", "shrink", "move", "rotate", "morph"],
+                  "description": "Type of animation"
+                },
+                "timing": {
+                  "type": "object",
+                  "required": ["start", "duration"],
+                  "properties": {
+                    "start": {
+                      "type": "number",
+                      "description": "Animation start time relative to scene start"
+                    },
+                    "duration": {
+                      "type": "number",
+                      "description": "Animation duration in seconds"
+                    }
+                  }
+                },
+                "parameters": {
+                  "type": "object",
+                  "description": "Animation-specific parameters (direction, speed, etc.)"
+                }
+              }
+            }
+          },
+          "transitions": {
+            "type": "object",
+            "description": "Transitions to next scene",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["cut", "fade", "slide", "zoom", "morph"],
+                "description": "Transition type"
+              },
+              "duration": {
+                "type": "number",
+                "description": "Transition duration in seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

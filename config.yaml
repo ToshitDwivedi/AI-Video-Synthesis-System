@@ -1,0 +1,63 @@
+# LLM Configuration
+llm:
+  provider: "groq"  # Using Groq API for testing
+  
+  # Groq Configuration (Free API)
+  groq:
+    api_key: "${GROQ_API_KEY}"  # Set this in your environment variables
+    model: "llama-3.1-8b-instant"  # Options: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
+    max_tokens: 4096
+    temperature: 0.7
+  
+  # Ollama Configuration (Local/Offline)
+  ollama:
+    model: "llama3.2:1b"  # Using smallest model for testing
+    base_url: "http://localhost:11434"
+    temperature: 0.7
+
+# Text-to-Speech Configuration
+tts:
+  model: "tts_models/en/ljspeech/tacotron2-DDC"  # Lightweight and fast
+  # Alternative lighter option: "tts_models/en/ljspeech/glow-tts"
+  voice_speed: 1.0
+  output_sample_rate: 22050
+
+# Manim Configuration
+manim:
+  quality: "low_quality"  # Options: low_quality, medium_quality, high_quality, production_quality
+  fps: 15  # Lower FPS for faster rendering during testing
+  resolution: "480p"  # Lower resolution for testing (480p, 720p, 1080p, 1440p, 2160p)
+  background_color: "WHITE"  # For technical diagrams, white background is cleaner
+  preview: false  # Set to true to auto-open video after rendering
+
+# Video Configuration
+video:
+  default_duration: 60  # Default video duration in seconds
+  scene_transition_duration: 0.5  # Duration of transitions between scenes
+  text_animation_speed: 0.05  # Speed for text reveals
+
+# Style Profile
+style:
+  primary_color: "#2E86DE"  # Blue for tech videos
+  secondary_color: "#5F27CD"  # Purple accent
+  text_color: "#2C3E50"  # Dark gray
+  background_color: "#FFFFFF"  # White
+  accent_color: "#FF6B6B"  # Red for highlights
+  
+  # Animation preferences
+  use_arrows: true
+  use_flowcharts: true
+  animation_style: "smooth"  # Options: smooth, snappy, professional
+
+# Output Configuration
+output:
+  videos_dir: "./output/videos"
+  temp_dir: "./output/temp"
+  blueprints_dir: "./output/blueprints"
+  scripts_dir: "./output/scripts"
+  audio_dir: "./output/audio"
+
+# Logging
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+  file: "./logs/video_synthesis.log"

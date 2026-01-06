@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environment Variables
+.env
+.venv
+env/
+venv/
+venv311/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs
+logs/
+*.log
+
+# Video/Audio artifacts (Keep final videos optionally, but ignore temp)
+output/temp/
+output/audio/*.mp3
+output/audio/*.wav
+# output/videos/*.mp4  <-- We might want to keep the sample video for the demo
+
+# IDE
+.vscode/
+.idea/
+
+# Local model weights (if any)
+weights/
+models/
+
+# System
+Thumbs.db
+Desktop.ini
